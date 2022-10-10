@@ -1,0 +1,7 @@
+dash
+pandas
+gunicorn
+sqlalchemy
+psycopg2-binary
+sqlalchemy
+numpy
