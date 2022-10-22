@@ -19,7 +19,7 @@ import sqlalchemy
 import numpy as np
 
 
-online_deployment = False # Set to False for local development and debugging
+online_deployment = True # Set to False for local development and debugging
 # Make sure this is set to True before you deploy a new version of the app
 # to Cloud Run!
 
@@ -68,11 +68,12 @@ print(len(df_aaa))
 
 df_top_20_airports = pd.read_sql("top_20_airports_by_pax_arrivals_2018", con = elephantsql_engine)
 
-fig_top_20_airports_2018 = px.bar(df_top_20_airports, x="Airport", y="2018_Passenger_Arrivals", title = "Top 20 Airports by Arriving Passengers in 2018")
+fig_top_20_airports_2018 = px.bar(df_top_20_airports, x="Airport", y="Passengers", color = "Route_Type", barmode = 'stack', title = "Top 20 US Airports by Arriving Passengers in 2018")
 
 # Top 20 Airlines:
 df_top_20_airlines = pd.read_sql("top_20_airlines_by_passengers_2018", con = elephantsql_engine)
-fig_top_20_airlines_2018 = px.bar(df_top_20_airlines, x="Airline", y="Passengers", title = "Top 20 US Airlines in 2018")
+fig_top_20_airlines_2018 = px.bar(df_top_20_airlines, x="Airline", y="Passengers", color = "Route_Type", barmode = 'group', title = "Top 20 Airlines by Passenger Arrivals at US Airports in 2018")
+## https://plotly.com/python/bar-charts/
 
 # Top 20 US Airports by Airline Share
 
@@ -84,19 +85,19 @@ top_20_airports_list = list(df_top_20_airports['Airport'])
 df_airline_airport_pairs = pd.read_sql("airline_airport_pairs_2018", con = elephantsql_engine)
 
 
-df_top_airlines_and_airports = df_airline_airport_pairs.query("Dest_Airport in @top_20_airports_list").copy().reset_index(drop=True)
+df_top_airlines_and_airports = df_airline_airport_pairs.query("Airport in @top_20_airports_list").copy().reset_index(drop=True)
 df_top_airlines_and_airports['Airline'] = np.where(df_top_airlines_and_airports['Airline'].str.contains(top_airline_list_as_string) == False, 'Other', df_top_airlines_and_airports['Airline'])
 
-df_top_airlines_and_airports = df_top_airlines_and_airports.pivot_table(index = ["Airline", "Dest_Airport"], values = "Passengers", aggfunc = "sum").reset_index()
+df_top_airlines_and_airports = df_top_airlines_and_airports.pivot_table(index = ["Airline", "Airport"], values = "Passengers", aggfunc = "sum").reset_index()
 
 airport_ranks = df_top_20_airports[['Airport', 'Rank']]
 
-df_top_airlines_and_airports = df_top_airlines_and_airports.merge(airport_ranks, left_on = "Dest_Airport", right_on = "Airport")
+df_top_airlines_and_airports = df_top_airlines_and_airports.merge(airport_ranks, left_on = "Airport", right_on = "Airport")
 
 
 df_top_airlines_and_airports.sort_values("Rank", inplace = True)
 
-fig_t4_airline_presence_at_t20_airports = px.bar(df_top_airlines_and_airports, x="Dest_Airport", y="Passengers", color="Airline", title="Top 20 US Airports by Airline Share in 2018")
+fig_t4_airline_presence_at_t20_airports = px.bar(df_top_airlines_and_airports, x="Airport", y="Passengers", color="Airline", title="Top 20 US Airports by Airline Share in 2018")
 
 
 
