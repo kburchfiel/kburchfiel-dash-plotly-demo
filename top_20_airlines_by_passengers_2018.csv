@@ -1,4 +1,4 @@
-UNIQUE_CARRIER,Route_Type,PASSENGERS,Rank
+Airline,Route_Type,Passengers,Rank
 WN,Domestic,160578652.0,1
 WN,International,4560615.0,1
 AA,Domestic,119081636.0,2

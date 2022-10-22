@@ -19,7 +19,7 @@ import sqlalchemy
 import numpy as np
 
 
-online_deployment = True # Set to False for local development and debugging
+online_deployment = False # Set to False for local development and debugging
 # Make sure this is set to True before you deploy a new version of the app
 # to Cloud Run!
 

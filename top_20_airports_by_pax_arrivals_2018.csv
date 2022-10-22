@@ -1,4 +1,4 @@
-DEST,Route_Type,PASSENGERS,Rank
+Airport,Route_Type,Passengers,Rank
 ATL,Domestic,41606158.0,1
 ATL,International,5782717.0,1
 LAX,Domestic,29643615.0,2

@@ -1,4 +1,4 @@
-DEST,UNIQUE_CARRIER,Route_Type,PASSENGERS
+Airport,Airline,Route_Type,Passengers
 ATL,AA,Domestic,1271729.0
 ATL,AA,International,399.0
 ATL,DL,Domestic,30464398.0
