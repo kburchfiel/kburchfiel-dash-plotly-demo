@@ -1,21 +1,41 @@
-Airline,Passengers,Rank
-Southwest Airlines Co.,165139267.0,1
-American Airlines Inc.,146267939.0,2
-Delta Air Lines Inc.,143049045.0,3
-United Air Lines Inc.,110385926.0,4
-JetBlue Airways,41635897.0,5
-Alaska Airlines Inc.,33755225.0,6
-Spirit Air Lines,28777722.0,7
-SkyWest Airlines Inc.,26810281.0,8
-Frontier Airlines Inc.,19411454.0,9
-Republic Airline,17474019.0,10
-Mesa Airlines Inc.,12590799.0,11
-Endeavor Air Inc.,11393540.0,12
-Hawaiian Airlines Inc.,11321558.0,13
-Envoy Air,10044272.0,14
-PSA Airlines Inc.,9519918.0,15
-British Airways Plc,7457832.0,16
-ExpressJet Airlines LLC,7328564.0,17
-Lufthansa German Airlines,6120312.0,18
-Compass Airlines,5869836.0,19
-Westjet,5335151.0,20
+UNIQUE_CARRIER,Route_Type,PASSENGERS,Rank
+WN,Domestic,160578652.0,1
+WN,International,4560615.0,1
+AA,Domestic,119081636.0,2
+AA,International,27186303.0,2
+DL,Domestic,119611221.0,3
+DL,International,23437824.0,3
+UA,Domestic,84532551.0,4
+UA,International,25853375.0,4
+B6,Domestic,33547937.0,5
+B6,International,8087960.0,5
+AS,Domestic,31734733.0,6
+AS,International,2020492.0,6
+NK,Domestic,26413644.0,7
+NK,International,2364078.0,7
+OO,Domestic,25282225.0,8
+OO,International,1528056.0,8
+F9,Domestic,18644380.0,9
+F9,International,767074.0,9
+YX,Domestic,16428097.0,10
+YX,International,1045922.0,10
+YV,Domestic,11167576.0,11
+YV,International,1423223.0,11
+9E,Domestic,10461234.0,12
+9E,International,932306.0,12
+HA,Domestic,10319056.0,13
+HA,International,1002502.0,13
+MQ,Domestic,8848416.0,14
+MQ,International,1195856.0,14
+OH,Domestic,9334599.0,15
+OH,International,185319.0,15
+BA,Domestic,7764.0,16
+BA,International,7450068.0,16
+EV,Domestic,6493581.0,17
+EV,International,834983.0,17
+LH,Domestic,6909.0,18
+LH,International,6113403.0,18
+CP,Domestic,5223764.0,19
+CP,International,646072.0,19
+WS,Domestic,116.0,20
+WS,International,5335035.0,20

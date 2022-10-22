@@ -60,7 +60,6 @@ df_aaa_len = len(df_aaa)
 print(len(df_aaa))
 
 # Note: this code was based on: https://dash.plotly.com/layout#more-about-html-components
-# assume you have a "long-form" data frame
 
 # https://plotly.com/python/px-arguments/ for more options
 
