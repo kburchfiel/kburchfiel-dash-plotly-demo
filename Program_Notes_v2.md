@@ -58,3 +58,24 @@ As instructed by the ['Using Secret Manager With Python'](https://codelabs.devel
 At this point, I had a pretty good foundation for my app: I had a database with statistics; I had means of connecting to the database online and offline; and I had some sample Plotly code that I could adjust to display the items shown within the app.
 
 I'm now working on adding in additional Plotly charts. I hope to introduce more interactive charts in the future (e.g. that allow users to select different values to compare).
+
+Some chart ideas I have in mind include:
+
+* Average flight distance by airplane (this may involve grouping similar airplanes into bins and also creating a widebody/narrowbody category)
+
+* Top 10-20 airlines for a user-selected airport (similar to the graph and table I've included
+that show the top origin airports for a user-selected airport)
+
+* Adding at least one corresponding data table for each chart
+
+* Average distance by plane
+
+* A chart in which the user can choose at least 3 comparison variables in order to 
+understand a given dataset (e.g. domestic/international traffic for the top 4 airlines
+at the top 5 airports. In this case, the comparison variables would be (1) destination 
+airport, (2) airline, and (3) domestic/international traffic)
+
+* More filter options for each graph
+
+* A chart showing traffic by airport by year (would be an interesting way to infer
+which airports cater to tourists vs. business/VFR traffic)
