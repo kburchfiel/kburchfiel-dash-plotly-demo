@@ -9,7 +9,7 @@
 # Note: running this program within Visual Studio Code by pressing F5 doesn't appear to work.
 # Instead, you need to launch it from Command Prompt or a similar program.
 
-# For web debugging/deployment: with onine_deployment set to True,
+# For web debugging/deployment: with online_deployment set to True,
 # run this app by entering
 # gcloud run deploy --source . Press enter to choose the default project
 # name and 27 to choose the us-central1 data center.
@@ -27,7 +27,7 @@ import sqlalchemy
 import numpy as np
 
 
-online_deployment = True # Set to False for local development and debugging
+online_deployment = False # Set to False for local development and debugging
 # Make sure this is set to True before you deploy a new version of the app
 # to Cloud Run!
 
@@ -120,8 +120,10 @@ top_airline_list_as_string = ("|".join(top_airlines_list)) # Converts the airlin
 
 top_20_airports_list = list(df_top_20_airports['Airport'].unique())
 
-df_airline_airport_pairs = pd.read_sql("airline_airport_pairs_2018", con = elephantsql_engine)
-
+all_data_value = 'All_Traffic'
+df_airline_airport_pairs = pd.read_sql('airline_airport_pairs_2018', con = elephantsql_engine)
+df_airline_airport_pairs[all_data_value] = all_data_value # This column will allow
+# the code to show all values when no pivot value is selected.
 
 df_top_airlines_and_airports = df_airline_airport_pairs.query("Airport in @top_20_airports_list").copy().reset_index(drop=True)
 df_top_airlines_and_airports['Airline'] = np.where(df_top_airlines_and_airports['Airline'].str.contains(top_airline_list_as_string) == False, 'Other', df_top_airlines_and_airports['Airline'])
@@ -172,6 +174,24 @@ app.layout = html.Div(children=[
         This page, which is still a work in progress, shows how Plotly and Dash can be used to visualize data retrieved from a database.
     '''),
 
+    dcc.Checklist(
+            id = 'top_airports_graph_options_input',
+    options={
+            'show_airline_comparison': 'Show Airline Comparison',
+            'show_route_type': 'Show Route Type',
+    },
+    value=['show_airline_comparison']
+    # Note: if both are selected, the output will appear as:
+    # ['show_airline_comparison', 'show_route_type']
+
+),
+
+    html.H4(children = "Number of Airports to Show: (Clear entry to include all airports)"),
+    dcc.Input(id="airports_graph_airports_limit_input", type="number", value=20, min = 1),
+
+    dcc.Graph("top_airports_interactive_graph"),
+
+
     dcc.Graph(id='fig_t4_airline_presence_at_t20_airports',
     figure = fig_t4_airline_presence_at_t20_airports),
 
@@ -208,7 +228,106 @@ app.layout = html.Div(children=[
 
         dcc.Graph(
             id = 'top_origins_for_airport_graph'),
+
+        html.H2(children = "Interactive Airline Traffic Graph"),
+        html.H4(children = "Compare by:"),
+        dcc.Dropdown(['Airport', 'Airline', 'Route Type'], ['Airport'], id='pivot_value_input', multi = True),
+        html.H4(children = "Color bars based on: (Note: this item must be one \
+    of the selected comparisons)"),
+        dcc.Dropdown(['Airport', 'Airline', 'Route Type', 'None'], 'None', id='color_value_input', multi = False),
+        html.H4(children = "Airports Limit: (Clear entry to include all airports)"),
+        dcc.Input(id="airports_limit", type="number", value=5, min = 1),
+        html.H4(children = "Airlines Limit: (Clear entry to include all airports)"),
+        dcc.Input(id="airlines_limit", type="number", value=4, min = 1),
+        # See https://dash.plotly.com/dash-core-components/input
+
+        # html.Div(id='dd-output-container'),
+        # # multi = True will cause all outputs to be returned
+        # # as a list.
+        dcc.Graph(id='pivot_chart')
+
 ])
+
+
+@app.callback(
+    # Output("graph_options_output", "children"),
+    Output("top_airports_interactive_graph", "figure"),
+    Input("top_airports_graph_options_input", "value"),
+    Input("airports_graph_airports_limit_input", "value"),
+)
+
+def create_top_20_airports_graph(top_airports_graph_options, airports_graph_airports_limit):
+    if airports_graph_airports_limit == None:
+        airports_graph_airports_limit = 100
+    if ((1 <= airports_graph_airports_limit <= 100) == False):
+        airports_graph_airports_limit = 100
+    print(f"Calling create_top_20_airports_graph with the following graph options: {top_airports_graph_options} and the following airports limit: {airports_graph_airports_limit}")
+
+    top_airlines = list(df_airline_airport_pairs.pivot_table(index = 'Airline', values = 'Passengers', aggfunc = 'sum').sort_values('Passengers', ascending = False).index[0:4])
+    top_airlines_as_string = ("|".join(top_airlines)) # Converts the airlines in the list to a string value that the following np.where statement can use to create an 'Other' category of airlines. # See
+    # https://docs.python.org/3/library/stdtypes.html#str.join
+    top_airlines_as_string
+
+    df_airline_airport_pairs['Airline'] = np.where(df_airline_airport_pairs['Airline'].str.contains(top_airlines_as_string, regex = True) == False, 'Other', df_airline_airport_pairs['Airline'])
+    # See https://pandas.pydata.org/docs/reference/api/pandas.Series.str.contains.html
+    # regarding the use of the pipe operator here.
+    df_airline_airport_pairs
+
+
+    airports_to_keep = list(df_airline_airport_pairs.pivot_table(index = 'Airport', values = 'Passengers', aggfunc = 'sum').sort_values('Passengers', ascending = False).index[0:airports_graph_airports_limit])
+    df_airline_airport_pairs_filtered = df_airline_airport_pairs.query("Airport in @airports_to_keep").copy()
+    print(airports_to_keep)
+
+    # The following code creates a pivot table based on the parameters specified above.
+
+    pivot_values = ['Airport']
+
+    if 'show_airline_comparison' in top_airports_graph_options:
+        pivot_values.append('Airline')
+
+    if 'show_route_type' in top_airports_graph_options:
+        pivot_values.append('Route_Type')
+
+    df_airline_airport_pairs_filtered_pivot = df_airline_airport_pairs_filtered.pivot_table(index = pivot_values,
+    values = 'Passengers', aggfunc = 'sum').reset_index()
+    df_airline_airport_pairs_filtered_pivot
+
+    if ('show_airline_comparison' in top_airports_graph_options) and ('show_route_type' in top_airports_graph_options):
+        df_airline_airport_pairs_filtered_pivot['Airport_Route_Pair'] = df_airline_airport_pairs_filtered_pivot['Airport'] + ' ' + df_airline_airport_pairs_filtered_pivot['Route_Type']
+
+
+    # Since there are two different top_airports_graph_options items that
+    # can be chosen, there are in turn four possible graphs that can be created. 
+    # Thus, the following code creates four separate bar charts.
+
+    if ('show_airline_comparison' in top_airports_graph_options) and ('show_route_type' in top_airports_graph_options):
+
+        x_val = 'Airport_Route_Pair'
+        color_val = 'Airline'
+
+    if top_airports_graph_options == ['show_airline_comparison']:
+        color_val = 'Airline'
+        x_val = 'Airport'
+
+    if top_airports_graph_options == ['show_route_type']:
+        color_val = 'Route_Type'
+        x_val = 'Airport'
+
+    if top_airports_graph_options == []:
+        color_val = 'Airport'
+        x_val = 'Airport'
+
+    top_airports_graph = px.histogram(df_airline_airport_pairs_filtered_pivot, x = x_val, y = 'Passengers', color_discrete_map=airline_color_map, color = color_val)
+
+    top_airports_graph
+
+    return top_airports_graph
+
+# def print_graph_options(graph_options):
+#     print(graph_options)
+#     return(graph_options)
+
+
 
 @app.callback(
     Output("top_origins_for_airport_table", "figure"),
@@ -259,6 +378,88 @@ def create_departures_table(dest_airport):
 
 df_dest_by_origin = pd.read_sql('select * from dest_to_origin', con = elephantsql_engine)
 
+
+@app.callback(
+    Output('pivot_chart', 'figure'),
+    Input('pivot_value_input', 'value'),
+    Input('color_value_input', 'value'),
+    Input('airports_limit', 'value'),
+    Input('airlines_limit', 'value')
+)
+
+def update_chart(pivot_values, color_value, airports_limit, airlines_limit):
+    # These arguments correspond to the input values
+    # listed (in the same order).
+    # return f'You have selected {pivot_values}'
+
+    # The following code creates a pivot table version of the DataFrame that 
+    # can be used for creating bar charts. It takes the specified pivot values
+    # and color values as inputs, and then uses those values to group the
+    # data accordingly. The code works with different numbers of pivot values,
+    # including zero pivot values.
+    # In order to represent all of the specified values, the code creates a 
+    # column describing all (or almost all) of the pivot index variables
+    # in the other columns, which then gets fed 
+    # into the x axis parameter of the bar chart. However, if a color value is
+    # also specified, this item does not get added into this column, since this
+    # data will already get represented in the bar chart (by means of the color
+    # legend). Removing this value helps
+    # simplify the final chart output.
+
+
+    airlines_to_keep = list(df_airline_airport_pairs.pivot_table(index = 'Airline', values = 'Passengers', aggfunc = 'sum').sort_values('Passengers', ascending = False).index[0:airlines_limit])
+    print(airlines_to_keep)
+    df_airline_airport_pairs_filtered = df_airline_airport_pairs.query("Airline in @airlines_to_keep").copy()
+
+    airports_to_keep = list(df_airline_airport_pairs.pivot_table(index = 'Airport', values = 'Passengers', aggfunc = 'sum').sort_values('Passengers', ascending = False).index[0:airports_limit])
+    df_airline_airport_pairs_filtered = df_airline_airport_pairs_filtered.query("Airport in @airports_to_keep").copy()
+    print(airports_to_keep)
+
+
+
+    # The following lines convert dropdown text to 
+    # DataFrame column variables where discrepancies
+    # exist between the two.
+    pivot_values = ['Route_Type' if entry == 'Route Type' else entry for entry in pivot_values]
+
+    if color_value == 'Route Type':
+        color_value = 'Route_Type'
+    
+    color_value = color_value # This color value must also be present
+    # within the pivot_values table.
+    # group_value = 'Airline'
+    if len(pivot_values) == 0:
+        df_airline_airport_pairs_pivot = df_airline_airport_pairs_filtered.pivot_table(index = 'All_Traffic', values = 'Passengers', aggfunc = 'sum').reset_index()
+    else:
+        df_airline_airport_pairs_pivot = df_airline_airport_pairs_filtered.pivot_table(index = pivot_values, values = 'Passengers', aggfunc = 'sum').reset_index()
+
+    # The following lines create a column containing the values of each of the
+    # columns (other than the 'Passengers') column present in the bar chart. A
+    # for loop is used so that this column can adapt to different variable
+    # choices and different numbers of columns.
+    if len(pivot_values) == 0:
+        data_descriptor = all_data_value
+    else:
+        data_descriptor_values = pivot_values.copy()
+        if color_value != 'None':
+            data_descriptor_values.remove(color_value) # If a value will be assigned a
+            # color component in the graph, it doesn't need to be assigned a 
+            # group component, since it will show up in the graph regardless. Removing 
+            # it here helps simplify the graph.
+        print(data_descriptor_values)   
+        data_descriptor = df_airline_airport_pairs_pivot[data_descriptor_values[0]].copy() # This copy() statement
+        # is needed in order to avoid  modifying this column when the group column
+        # gets chosen.
+        for i in range(1, len(data_descriptor_values)):
+            data_descriptor += ' ' + df_airline_airport_pairs_pivot[data_descriptor_values[i]]
+
+    df_airline_airport_pairs_pivot['Group'] = data_descriptor
+
+    df_airline_airport_pairs_pivot.head(5)
+
+    output_histogram = px.histogram(df_airline_airport_pairs_pivot, x = 'Group', y = 'Passengers', color = None if color_value == 'None' else color_value, barmode = 'group')
+
+    return output_histogram
 
 
 

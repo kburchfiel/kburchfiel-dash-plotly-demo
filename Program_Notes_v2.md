@@ -79,3 +79,28 @@ airport, (2) airline, and (3) domestic/international traffic)
 
 * A chart showing traffic by airport by year (would be an interesting way to infer
 which airports cater to tourists vs. business/VFR traffic)
+
+
+**Implementing more advanced graphs**
+
+Now that I had created some basic graphs using Plotly, I wanted to incorporate more advanced features (such as interactive filters and comparison choices). However, I knew that I would need to learn more about Plotly and Dash in order to implement these additions.
+
+The [Basic Callbacks](https://dash.plotly.com/basic-callbacks) component of the Dash walkthrough provided a very useful overview of how to implement callbacks.
+
+Next, I reviewed dropdown options on Plotly's [dcc.Dropdown](https://dash.plotly.com/dash-core-components/dropdown) page. 
+
+
+## Notes to self:
+1. On Part 5 of the Dash tutorial: https://dash.plotly.com/sharing-data-between-callbacks 
+
+2. To make a graph with selected groupings: you can feed the results of a multi-select dropdown box into pd.pivot_table's index parameter. 
+
+Note that the results of choosing 'NYC', 'MTL', and 'SF' in a multi-value dropdown box equal ['NYC', 'MTL', 'SF']. This could be the argument passed to index = when creating a pivot table.
+
+And then, once the pivot table has been created, you can create a grouped bar chart by just graphing each of the bars individually. (You could also choose some color/stack options for some of them.)
+
+Actually, you could add in additional dropdown menus to choose which variables (if any) to group (as different colors) using the color px.bar parameter, and which (if any) to stack!
+
+So when you have some free time, try drafting a chart like this, perhaps as a separate Dash app first (this could involve reading a .csv file) and then as part of your new app.
+
+Alternatively, you could simply use the dash-pivottable code, which looks very robust. (See https://dash.gallery/dash-pivottable/)
