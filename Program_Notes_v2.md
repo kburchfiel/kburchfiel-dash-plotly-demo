@@ -89,6 +89,8 @@ The [Basic Callbacks](https://dash.plotly.com/basic-callbacks) component of the 
 
 Next, I reviewed dropdown options on Plotly's [dcc.Dropdown](https://dash.plotly.com/dash-core-components/dropdown) page. 
 
+Using these tools and other resources that I found along the way, I was able to revise my graphs to incorporate more interactive features. However, this revision process is still a work in progress.
+
 
 ## Notes to self:
 1. On Part 5 of the Dash tutorial: https://dash.plotly.com/sharing-data-between-callbacks 
