@@ -161,18 +161,12 @@ app.layout = html.Div(style = {'font-family':'sans-serif'},
     # ['show_airline_comparison', 'show_route_type']
 
 ),
-    # Top Airports Interactive Graph
-    html.H4(children = "Route Types To Show"),
-    dcc.Dropdown(['Domestic', 'International'], ['Domestic','International'], id='top_airports_graph_route_types', multi = True),
+
     html.H4(children = "Number of Airports to Show (Up to 100)"),
     dcc.Input(id="airports_graph_airports_limit_input", type="number", value=20, min = 1),
-    html.H4(children = "Airports to Include"),
-    dcc.Dropdown(id = "airports_to_graph", multi = True), # The initial value
-    # will be set through a callback, so no list is specified here.
+
     dcc.Graph("top_airports_interactive_graph"),
 
-
-    # Interactive Airline Traffic Graph
     html.H2(children = "Interactive Airline Traffic Graph"),
     html.H4(children = "Compare by:"),
     dcc.Dropdown(['Airport', 'Airline', 'Route Type'], ['Airport'], id='pivot_value_input', multi = True),
@@ -220,75 +214,27 @@ app.layout = html.Div(style = {'font-family':'sans-serif'},
             id = 'top_origins_for_airport_graph')
 ])
 
-# Top airports graph:
 
-# Note: The airports shown on the graph are selected through multiple stages.
-# First, the user selects which route types to view (domestic, international,
-# or both) and the number of airports to show. Next, the create_top_airports_list
-# function (shown below) retrieves a list of the top n airports to show
-# based on this criteria. This list is then shown as a multiselect dropdown
-# window so that the user can manually remove certain airports. The 
-# create_interactive_top_airports_graph then uses this list to determine
-# which airports will actually appear on the graph.
-
-# Callback/function that populate an interactive airports filter for the 
-# top airports graph.
-# Note that the same data gets returned under both the 'options' and 
-# the 'value' category. This way, the default value(s) for the airports
-# filter will consist of all the potential options. (Otherwise, the 
-# default values list will be blank and there won't be any data to display.)
-# Thank you to Eduardo at 
-# https://community.plotly.com/t/how-to-dynamically-set-a-default-value-in-a-dcc-dropdown-when-options-come-from-a-callback/48463/4
-# for explaining this.
-@app.callback(
-    Output("airports_to_graph", "options"),
-    Output("airports_to_graph", "value"),
-    Input("top_airports_graph_route_types", "value"),
-    Input("airports_graph_airports_limit_input", "value")
-)
-
-def create_top_airports_list(route_types_to_show, airports_graph_airports_limit):
-    data_source = df_airline_airport_pairs.query("Destination_Region == 'Domestic'").copy()
-    data_source = data_source.query("Route_Type in @route_types_to_show").copy()
-
-    if airports_graph_airports_limit == None:
-        airports_graph_airports_limit = 100
-    if ((1 <= airports_graph_airports_limit <= 100) == False):
-        airports_graph_airports_limit = 100
-
-    df_airline_airport_pivot = data_source.pivot_table(index = 'Airport', values = 'Passengers', aggfunc = 'sum').sort_values('Passengers', ascending = False).reset_index()
-    airports_to_keep = list(df_airline_airport_pivot['Airport'][0:airports_graph_airports_limit].copy())
-    return airports_to_keep, airports_to_keep
-
-
-
-# Callback and function for creating top 20 airports graph:
 @app.callback(
     # Output("graph_options_output", "children"),
     Output("top_airports_interactive_graph", "figure"),
     Input("top_airports_graph_options_input", "value"),
-    Input("airports_to_graph", "value"),
-    Input("top_airports_graph_route_types", "value"),
+    Input("airports_graph_airports_limit_input", "value"),
 )
 
-def create_interactive_top_airports_graph(top_airports_graph_options, airports_to_graph, route_types_to_show):
-    '''This function creates a graph of the top airports specified by 
-    the parameters provided.
-    '''
+def create_top_20_airports_graph(top_airports_graph_options, airports_graph_airports_limit):
+
     data_source = df_airline_airport_pairs.query("Destination_Region == 'Domestic'").copy() # Using a copy
     # of this DataFrame ensures that changes to the DataFrame won't
     # affect the original DataFrame (which could distort other graphs
     # or later versions of this graph).
     # The data source is also limited to US airports since that is the
     # region of interest for this chart.
-
-    # The following query statement filters data_source to only include
-    # the rows specified in the 'Route Types to Show' menu.
-    print("Filtering data source to only include the following route types:", route_types_to_show)
-    data_source = data_source.query("Route_Type in @route_types_to_show").copy()
-
-
-    print(f"Calling create_interactive_top_airports_graph with the following graph options: {top_airports_graph_options} and the following airports limit: {airports_to_graph}")
+    if airports_graph_airports_limit == None:
+        airports_graph_airports_limit = 100
+    if ((1 <= airports_graph_airports_limit <= 100) == False):
+        airports_graph_airports_limit = 100
+    print(f"Calling create_top_20_airports_graph with the following graph options: {top_airports_graph_options} and the following airports limit: {airports_graph_airports_limit}")
 
     top_airlines = list(data_source.pivot_table(index = 'Airline', values = 'Passengers', aggfunc = 'sum').sort_values('Passengers', ascending = False).index[0:4])
 
@@ -303,12 +249,13 @@ def create_interactive_top_airports_graph(top_airports_graph_options, airports_t
 
     data_source
 
-
     df_airline_airport_pivot = data_source.pivot_table(index = 'Airport', values = 'Passengers', aggfunc = 'sum').sort_values('Passengers', ascending = False).reset_index()
     df_airline_airport_pivot['airport_rank'] = df_airline_airport_pivot['Passengers'].rank(ascending=False)
     df_airline_airport_pivot
 
-    data_source_filtered = data_source.query("Airport in @airports_to_graph").copy()
+    airports_to_keep = list(df_airline_airport_pivot['Airport'][0:airports_graph_airports_limit].copy())
+    airports_to_keep
+    data_source_filtered = data_source.query("Airport in @airports_to_keep").copy()
     data_source_filtered = data_source_filtered.merge(df_airline_airport_pivot[['Airport', 'airport_rank']], on = 'Airport')
     data_source_filtered
 
