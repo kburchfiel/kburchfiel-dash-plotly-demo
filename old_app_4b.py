@@ -16,7 +16,6 @@
 
 
 from dash import Dash, html, dcc, html, Input, Output
-import dash_bootstrap_components as dbc
 import plotly.graph_objects as go
 import plotly.express as px
 import pandas as pd
@@ -32,8 +31,7 @@ online_deployment = False # Set to False for local development and debugging
 # Make sure this is set to True before you deploy a new version of the app
 # to Cloud Run!
 
-app = Dash(__name__, external_stylesheets = [dbc.themes.BOOTSTRAP])
-# See https://dash-bootstrap-components.opensource.faculty.ai/docs/quickstart/
+app = Dash(__name__)
 server = app.server # From https://medium.com/kunder/deploying-dash-to-cloud-run-5-minutes-c026eeea46d4
 # Also found on https://dash.plotly.com/deployment (within the Heroku section)
 
@@ -128,6 +126,7 @@ fig_top_hubs.update_xaxes(categoryorder = 'total descending') # See https://plot
 
 # Top International Hubs:
 
+
 df_top_intl_hubs = df_airline_airport_pairs.query("Route_Type == 'International' & Destination_Region == 'Domestic'").pivot_table(index = ['Airline', 'Airport'], values = 'Passengers', aggfunc = 'sum').reset_index().sort_values('Passengers', ascending = False)
 # I'd only like to show US airports within this chart, so I chose to filter it to include only domestic airports.
 df_top_intl_hubs['Hub'] = df_top_intl_hubs['Airline'] + ' ' + df_top_intl_hubs['Airport']
@@ -140,10 +139,8 @@ fig_top_intl_hubs.update_xaxes(categoryorder = 'total descending') # See https:/
 # this isn't an issue, since those items do not have an explicit 
 
 
-app.layout = html.Div(
-# To make all of the font sans serif without using Dash Bootstrap, 
-# you can choose style = {'font-family':'sans-serif'}. See 
-# https://community.plotly.com/t/list-of-all-dash-fonts-accessible-through-style/50089
+app.layout = html.Div(style = {'font-family':'sans-serif'},
+# See https://community.plotly.com/t/list-of-all-dash-fonts-accessible-through-style/50089
  children=[
     html.H1(children='Sample Dash/Plotly Data Visualization App'),
 
@@ -152,8 +149,6 @@ app.layout = html.Div(
     html.Div(children='''
         This page, which is still a work in progress, shows how Plotly and Dash can be used to visualize data retrieved from a database.
     '''),
-
-    # Top Airports Interactive Graph:
     html.H2(children = "Top US Airports by Arrival Traffic in 2018"),
     dcc.Checklist(
             id = 'top_airports_graph_options_input',
@@ -161,64 +156,35 @@ app.layout = html.Div(
             'show_airline_comparison': 'Show Airline Comparison',
             'show_route_type': 'Show Route Type',
     },
-    value=['show_airline_comparison']),
+    value=['show_airline_comparison']
     # Note: if both are selected, the output will appear as:
     # ['show_airline_comparison', 'show_route_type']
-    html.H5(children = "Route Types To Show"),
+
+),
+    # Top Airports Interactive Graph
+    html.H4(children = "Route Types To Show"),
     dcc.Dropdown(['Domestic', 'International'], ['Domestic','International'], id='top_airports_graph_route_types', multi = True),
-    html.H5(children = "Number of Airports to Show (Up to 100)"),
+    html.H4(children = "Number of Airports to Show (Up to 100)"),
     dcc.Input(id="airports_graph_airports_limit_input", type="number", value=20, min = 1),
-    html.H5(children = "Airports to Include"),
+    html.H4(children = "Airports to Include"),
     dcc.Dropdown(id = "airports_to_graph", multi = True), # The initial value
     # will be set through a callback, so no list is specified here.
     dcc.Graph("top_airports_interactive_graph"),
 
-    # Interactive Air Traffic Graph:
-    html.H2(children = "Interactive Air Traffic Graph"),
-    # Filters/Limits:
-    
-    # I'm using Dash Bootstrap to place certain items on the same line, saving
-    # vertical space. See https://dash-bootstrap-components.opensource.faculty.ai/docs/components/layout/
-    dbc.Row([
-    dbc.Col(html.H5(children = "Route Types To Show:"), width = 1),
-    dbc.Col(dcc.Dropdown(['Domestic', 'International'], ['Domestic','International'], id='interactive_air_traffic_route_types', multi = True), width = 2), 
-    # I added in widths because doing so allowed me to use 'justify = start'
-    # to left-justify these text and entry boxes.
-    # See https://dash-bootstrap-components.opensource.faculty.ai/docs/components/layout/
-    
-    dbc.Col(html.H5(children = "Number of airports to show (up to 20):"), width = 2),
 
-    dbc.Col(dcc.Input(id="interactive_air_traffic_airports_limit", type="number", value=5, min = 1, size = '5'), width = 1),
-    # See https://dash.plotly.com/dash-core-components/input
-    # regarding the 'size' argument.
-
-    dbc.Col(html.H5(children = "Number of airlines to show (up to 10):"), width = 2),
-
-    dbc.Col(dcc.Input(id="interactive_air_traffic_airlines_limit", type="number", value=4, min = 1, size = '5'), width = 1)
+    # Interactive Airline Traffic Graph
+    html.H2(children = "Interactive Airline Traffic Graph"),
+    html.H4(children = "Compare by:"),
+    dcc.Dropdown(['Airport', 'Airline', 'Route Type'], ['Airport'], id='pivot_value_input', multi = True),
+    html.H4(children = "Color bars based on: (Note: this item must be one \
+    of the selected comparisons)"),
+    dcc.Dropdown(['Airport', 'Airline', 'Route Type', 'None'], 'None', id='color_value_input', multi = False),
+    html.H4(children = "Number of airports to show (up to 20)"),
+    dcc.Input(id="airports_limit", type="number", value=5, min = 1),
+    html.H4(children = "Number of airlines to show (up to 10)"),
+    dcc.Input(id="airlines_limit", type="number", value=4, min = 1),
     # See https://dash.plotly.com/dash-core-components/input
 
-
-    ], justify = "start"),
-
-
-    html.Div([dbc.Row([
-    dbc.Col(html.H5(children = "Airports to Include:"), width = 1),
-    dbc.Col(dcc.Dropdown(id = "interactive_air_traffic_airports_filter", multi = True), width = 6)
-    ], justify = "start"),
-    dbc.Row([
-    dbc.Col(html.H5(children = "Airlines to Include:"), width = 1),
-    dbc.Col(dcc.Dropdown(id = "interactive_air_traffic_airlines_filter", multi = True), width = 6),
-    ], justify = "start")]),
-    
-    # Comparisons:
-
-    dbc.Row([
-    dbc.Col(html.H5(children = "Compare by:"), width = 1),
-    dbc.Col(dcc.Dropdown(['Airport', 'Airline', 'Route Type'], ['Airport'], id='pivot_value_input', multi = True), width = 2),
-    dbc.Col(html.H5(children = "Color bars based on: (Note: this item must be one \
-    of the selected comparisons)"), width = 2),
-    dbc.Col(dcc.Dropdown(['Airport', 'Airline', 'Route Type', 'None'], 'Airport', id='color_value_input', multi = False), width = 2)
-    ], justify = "start"),
     # html.Div(id='dd-output-container'),
     # # multi = True will cause all outputs to be returned
     # # as a list.
@@ -265,8 +231,8 @@ app.layout = html.Div(
 # create_interactive_top_airports_graph then uses this list to determine
 # which airports will actually appear on the graph.
 
-# Callback and function that populate an interactive airports filter for the 
-# top airports graph:
+# Callback/function that populate an interactive airports filter for the 
+# top airports graph.
 # Note that the same data gets returned under both the 'options' and 
 # the 'value' category. This way, the default value(s) for the airports
 # filter will consist of all the potential options. (Otherwise, the 
@@ -465,62 +431,15 @@ def create_departures_table(dest_airport):
 df_dest_by_origin = pd.read_sql('select * from dest_to_origin', con = elephantsql_engine)
 
 
-# Functions for interactive airline traffic graph:
-
-# Determining airports to include:
-@app.callback(
-    Output("interactive_air_traffic_airports_filter", "options"),
-    Output("interactive_air_traffic_airports_filter", "value"),
-    Input("interactive_air_traffic_route_types", "value"),
-    Input("interactive_air_traffic_airports_limit", "value")
-)
-
-def create_airports_list_for_interactive_air_traffic_graph(route_types_to_show, airports_limit):
-    data_source = df_airline_airport_pairs.query("Destination_Region == 'Domestic'").copy()
-    data_source = data_source.query("Route_Type in @route_types_to_show").copy()
-
-    if airports_limit == None:
-        airports_limit = 20
-    if ((1 <= airports_limit <= 20) == False):
-        airports_limit = 20
-
-    df_airline_airport_pivot = data_source.pivot_table(index = 'Airport', values = 'Passengers', aggfunc = 'sum').sort_values('Passengers', ascending = False).reset_index()
-    airports_to_keep = list(df_airline_airport_pivot['Airport'][0:airports_limit].copy())
-    return airports_to_keep, airports_to_keep
-
-# Determining airlines to include:
-@app.callback(
-    Output("interactive_air_traffic_airlines_filter", "options"),
-    Output("interactive_air_traffic_airlines_filter", "value"),
-    Input("interactive_air_traffic_route_types", "value"),
-    Input("interactive_air_traffic_airlines_limit", "value")
-)
-
-def create_airlines_list_for_interactive_air_traffic_graph(route_types_to_show, airlines_limit):
-    data_source = df_airline_airport_pairs.query("Destination_Region == 'Domestic'").copy()
-    data_source = data_source.query("Route_Type in @route_types_to_show").copy()
-
-    if airlines_limit == None:
-        airlines_limit = 10
-    if ((1 <= airlines_limit <= 10) == False):
-        airlines_limit = 10
-
-    df_airline_airport_pivot = data_source.pivot_table(index = 'Airline', values = 'Passengers', aggfunc = 'sum').sort_values('Passengers', ascending = False).reset_index()
-    airlines_to_keep = list(df_airline_airport_pivot['Airline'][0:airlines_limit].copy())
-    return airlines_to_keep, airlines_to_keep
-
-
-
 @app.callback(
     Output('pivot_chart', 'figure'),
     Input('pivot_value_input', 'value'),
     Input('color_value_input', 'value'),
-    Input('interactive_air_traffic_route_types', 'value'),
-    Input('interactive_air_traffic_airlines_filter', 'value'),
-    Input('interactive_air_traffic_airports_filter', 'value')
+    Input('airports_limit', 'value'),
+    Input('airlines_limit', 'value')
 )
 
-def update_chart(pivot_values, color_value, route_types_to_show, airlines_to_graph, airports_to_graph):
+def update_chart(pivot_values, color_value, airports_limit, airlines_limit):
     # These arguments correspond to the input values
     # listed (in the same order).
     # return f'You have selected {pivot_values}'
@@ -539,14 +458,24 @@ def update_chart(pivot_values, color_value, route_types_to_show, airlines_to_gra
     # legend). Removing this value helps
     # simplify the final chart output.
 
+    if airports_limit == None:
+        airports_limit = 20
+    if ((1 <= airports_limit <= 20) == False):
+        airports_limit = 20
 
-    # print("Route_Type values to show:", route_types_to_show)
-    # print("Airlines to graph:", airlines_to_graph)
-    # print("Airports to graph:", airports_to_graph)
+    if airlines_limit == None:
+        airlines_limit = 10
+    if ((1 <= airlines_limit <= 10) == False):
+        airlines_limit = 10
+
     data_source = df_airline_airport_pairs.copy()
-    data_source_filtered = data_source.query("Route_Type in @route_types_to_show & Airport in @airports_to_graph & Airline in @airlines_to_graph").copy()
-    # print("data_source_filtered:")
-    # print(data_source_filtered)
+    airlines_to_keep = list(data_source.pivot_table(index = 'Airline', values = 'Passengers', aggfunc = 'sum').sort_values('Passengers', ascending = False).index[0:airlines_limit])
+    print(airlines_to_keep)
+    data_source_filtered = data_source.query("Airline in @airlines_to_keep").copy()
+
+    airports_to_keep = list(data_source.pivot_table(index = 'Airport', values = 'Passengers', aggfunc = 'sum').sort_values('Passengers', ascending = False).index[0:airports_limit])
+    data_source_filtered = data_source_filtered.query("Airport in @airports_to_keep").copy()
+    print(airports_to_keep)
 
 
 
@@ -574,7 +503,7 @@ def update_chart(pivot_values, color_value, route_types_to_show, airlines_to_gra
         data_descriptor = all_data_value
     else:
         data_descriptor_values = pivot_values.copy()
-        if (color_value != 'None') & (len(data_descriptor_values) > 1):
+        if color_value != 'None':
             data_descriptor_values.remove(color_value) # If a value will be assigned a
             # color component in the graph, it doesn't need to be assigned a 
             # group component, since it will show up in the graph regardless. Removing 
@@ -590,17 +519,7 @@ def update_chart(pivot_values, color_value, route_types_to_show, airlines_to_gra
 
     data_source_pivot.head(5)
 
-    # There is no need to perform bar grouping if only one pivot variable exists,
-    # so the following if/else statement sets barmode to 'relative' in that 
-    # case. Otherwise, barmode is set to 'group' in order to simplify 
-    # the x axis variables.
-    if len(pivot_values) == 1:
-        barmode = 'relative'
-    
-    else:
-        barmode = 'group'
-
-    output_histogram = px.histogram(data_source_pivot, x = 'Group', y = 'Passengers', color = None if color_value == 'None' else color_value, barmode = barmode, color_discrete_map=airline_color_map)
+    output_histogram = px.histogram(data_source_pivot, x = 'Group', y = 'Passengers', color = None if color_value == 'None' else color_value, barmode = 'group', color_discrete_map=airline_color_map)
 
     return output_histogram
 

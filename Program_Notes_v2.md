@@ -95,6 +95,14 @@ Using these tools and other resources that I found along the way, I was able to 
 ## Notes to self:
 Next: add in airport, airline, and route type filters for the Interactive Airline Traffic Graph using the methods that you applied for adding route type and airport filters to the Top US Airports by Arrival Traffic in 2018 graph.
 
+Also try creating a Dash-Pivottable chart in another page.
+
+After that, continue adding in filters and other interactive options where needed.
+
+Consider creating an airline traffic by month page also.
+
+In addition, consider sorting the charts into different pages to make the dashboard more readable.
+
 
 1. On Part 5 of the Dash tutorial: https://dash.plotly.com/sharing-data-between-callbacks 
 
