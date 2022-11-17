@@ -154,34 +154,29 @@ style = {"margin": "2%"}, # See
 
     html.Div(children='''
         This page, which is still a work in progress, shows how Plotly and Dash can be used to visualize data retrieved from a database.
-    ''', style = {"margin-top": "1%", "margin-bottom": "3%"}),
+    ''', style = {"margin-top": "2%"}),
     # This style parameter adds some extra space in between lines.
 
     # Top Airports Interactive Graph:
-    html.H2(children = "Top US Airports by Arrival Traffic in 2018", style = {"margin-top": "1%"}),
+    html.H2(children = "Top US Airports by Arrival Traffic in 2018", style = {"margin-top": "2%"}),
     # See https://developer.mozilla.org/en-US/docs/Web/CSS/margin
     # and https://dash.plotly.com/dash-html-components/h2
     # for the 'style' argument (note that Dash expects a dict to be passed 
     # as the parameter for 'style')
-    html.H5(children = "Comparisons to Show:", style = {"margin-top": "1%"}),
-    dcc.Dropdown(
+    dcc.Checklist(
             id = 'top_airports_graph_options_input',
     options={
-            'show_airline_comparison': 'Airline Comparison',
-            'show_route_type': 'Route Type'
+            'show_airline_comparison': 'Show Airline Comparison',
+            'show_route_type': 'Show Route Type',
     },
-    value=['show_airline_comparison', 'show_route_type'], style = {"margin-top": "1%"}, multi = True),
-    # I added in width = 3 to force the checklist items to appear vertically.
-    # I'm not sure why they didn't do so beforehand, since the documentation
-    # states that checklist items appear vertically by default.
-    # (See https://dash.plotly.com/dash-core-components/checklist)
+    value=['show_airline_comparison'], style = {"margin-top": "2%"}),
     # Note: if both are selected, the output will appear as:
     # ['show_airline_comparison', 'show_route_type']
-    html.H5(children = "Route Types To Show:", style = {"margin-top": "1%"}),
+    html.H5(children = "Route Types To Show", style = {"margin-top": "2%"}),
     dcc.Dropdown(['Domestic', 'International'], ['Domestic','International'], id='top_airports_graph_route_types', multi = True),
-    html.H5(children = "Airport Count (Max 100):", style = {"margin-top": "1%"}),
+    html.H5(children = "Number of Airports to Show (Up to 100)", style = {"margin-top": "2%"}),
     dcc.Input(id="airports_graph_airports_limit_input", type="number", value=20, min = 1),
-    html.H5(children = "Airports to Include:", style = {"margin-top": "1%"}),
+    html.H5(children = "Airports to Include", style = {"margin-top": "2%"}),
     dcc.Dropdown(id = "airports_to_graph", multi = True), # The initial value
     # will be set through a callback, so no list is specified here.
     dcc.Graph("top_airports_interactive_graph"),
@@ -193,49 +188,45 @@ style = {"margin": "2%"}, # See
     # I'm using Dash Bootstrap to place certain items on the same line, saving
     # vertical space. See https://dash-bootstrap-components.opensource.faculty.ai/docs/components/layout/
     dbc.Row([
-    dbc.Col(html.H5(children = "Route Types To Show:"), xl = 2, ),
-    # Note: 'xl' is used here instead of 'width' so that Dash will only apply
-    # a width of 1 when the screen size is 'xl' or larger. That way, the column
-    # elements will still wrap down for smaller screens (preventing overlap)
-    dbc.Col(dcc.Dropdown(['Domestic', 'International'], ['Domestic','International'], id='interactive_air_traffic_route_types', multi = True), xl = 2), 
+    dbc.Col(html.H5(children = "Route Types To Show:"), width = 1),
+    dbc.Col(dcc.Dropdown(['Domestic', 'International'], ['Domestic','International'], id='interactive_air_traffic_route_types', multi = True), width = 2), 
     # I added in widths because doing so allowed me to use 'justify = start'
     # to left-justify these text and entry boxes.
     # See https://dash-bootstrap-components.opensource.faculty.ai/docs/components/layout/
     
-    dbc.Col(html.H5(children = "Airport Count (Max 20):"), xl = 2),
+    dbc.Col(html.H5(children = "Number of airports to show (up to 20):"), width = 2),
 
-    dbc.Col(dcc.Input(id="interactive_air_traffic_airports_limit", type="number", value=5, min = 1, size = '5'), xl = 1),
+    dbc.Col(dcc.Input(id="interactive_air_traffic_airports_limit", type="number", value=5, min = 1, size = '5'), width = 1),
     # See https://dash.plotly.com/dash-core-components/input
     # regarding the 'size' argument.
 
-    dbc.Col(html.H5(children = "Airline Count (Max 10):"), xl = 2),
+    dbc.Col(html.H5(children = "Number of airlines to show (up to 10):"), width = 2),
 
-    dbc.Col(dcc.Input(id="interactive_air_traffic_airlines_limit", type="number", value=4, min = 1, size = '5'), xl = 1)
+    dbc.Col(dcc.Input(id="interactive_air_traffic_airlines_limit", type="number", value=4, min = 1, size = '5'), width = 1)
     # See https://dash.plotly.com/dash-core-components/input
 
 
-    ], justify = "start", style = {"margin-top": "1%"}),
+    ], justify = "start", className = 'mb-3'),
 
 
+    html.Div([dbc.Row([
+    dbc.Col(html.H5(children = "Airports to Include:"), width = 1),
+    dbc.Col(dcc.Dropdown(id = "interactive_air_traffic_airports_filter", multi = True), width = 6)
+    ], justify = "start"),
     dbc.Row([
-    dbc.Col(html.H5(children = "Airports to Include:"), xl = 2),
-    dbc.Col(dcc.Dropdown(id = "interactive_air_traffic_airports_filter", multi = True), xl = 6)
-    ], justify = "start", style = {"margin-top": "1%"}),
-
-    dbc.Row([
-    dbc.Col(html.H5(children = "Airlines to Include:"), xl = 2),
-    dbc.Col(dcc.Dropdown(id = "interactive_air_traffic_airlines_filter", multi = True), xl = 6),
-    ], justify = "start", style = {"margin-top": "1%"}),
+    dbc.Col(html.H5(children = "Airlines to Include:"), width = 1),
+    dbc.Col(dcc.Dropdown(id = "interactive_air_traffic_airlines_filter", multi = True), width = 6),
+    ], justify = "start")]),
     
     # Comparisons:
 
     dbc.Row([
-    dbc.Col(html.H5(children = "Compare by:"), xl = 2),
-    dbc.Col(dcc.Dropdown(['Airport', 'Airline', 'Route Type'], ['Airport'], id='pivot_value_input', multi = True), xl = 2),
+    dbc.Col(html.H5(children = "Compare by:"), width = 1),
+    dbc.Col(dcc.Dropdown(['Airport', 'Airline', 'Route Type'], ['Airport'], id='pivot_value_input', multi = True), width = 2),
     dbc.Col(html.H5(children = "Color bars based on: (Note: this item must be one \
-    of the selected comparisons)"), xl = 2),
-    dbc.Col(dcc.Dropdown(['Airport', 'Airline', 'Route Type', 'None'], 'Airport', id='color_value_input', multi = False), xl = 2)
-    ], justify = "start", style = {"margin-top": "1%"}),
+    of the selected comparisons)"), width = 2),
+    dbc.Col(dcc.Dropdown(['Airport', 'Airline', 'Route Type', 'None'], 'Airport', id='color_value_input', multi = False), width = 2)
+    ], justify = "start"),
     # html.Div(id='dd-output-container'),
     # # multi = True will cause all outputs to be returned
     # # as a list.
