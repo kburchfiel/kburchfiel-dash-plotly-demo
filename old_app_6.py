@@ -28,7 +28,7 @@ import sqlalchemy
 import numpy as np
 
 
-online_deployment = True # Set to False for local development and debugging
+online_deployment = False # Set to False for local development and debugging
 # Make sure this is set to True before you deploy a new version of the app
 # to Cloud Run!
 
@@ -267,34 +267,10 @@ style = {"margin": "2%"}, # See
 
 
 
-    # Top Airlines Graph:
-    html.H2(children = "Top Airlines by Traffic Involving at Least 1 US Airport in 2018"),
-    dcc.Checklist(
-            id = 'top_airlines_graph_show_route_types',
-    options={
-            'show_route_type': 'Compare by Route Type'
-    },
-    value=['show_route_type'], style = {"margin-top": "1%"}),
-
-    html.H5(children = "Route Types To Show:", style = {"margin-top": "1%"}),
-    dcc.Dropdown(['Domestic', 'International'], ['Domestic','International'], id='top_airlines_graph_route_types', multi = True),
-
-    dbc.Row([dbc.Col(html.H5(children = "Airline Count (Max 100):"), xl = 2),
-
-    dbc.Col(dcc.Input(id="top_airlines_graph_airlines_limit", type="number", value=20, min = 1, size = '5'), xl = 1)
-    # See https://dash.plotly.com/dash-core-components/input
-    ], justify = "start", style = {"margin-top": "1%"}),
-
-
-
-    dbc.Row([
-    dbc.Col(html.H5(children = "Airlines to Include:"), xl = 2),
-    dbc.Col(dcc.Dropdown(id = "top_airlines_graph_airlines_filter", multi = True), xl = 6),
-    ], justify = "start", style = {"margin-top": "1%"}),
-
-    dcc.Graph(
-        id='top_airlines_graph',
-    ),
+    # # Top Airlines Graph:
+    # dcc.Graph(
+    #     id='top_airlines_graph',
+    # ),
 
     # Top Domestic Hubs:
     dcc.Graph(
@@ -323,9 +299,6 @@ style = {"margin": "2%"}, # See
         dcc.Graph(
             id = 'top_origins_for_airport_graph')
 ])
-
-
-# Functions for creating interactive graphs:
 
 # Top airports graph:
 
@@ -538,7 +511,7 @@ def create_departures_table(dest_airport):
 df_dest_by_origin = pd.read_sql('select * from dest_to_origin', con = elephantsql_engine)
 
 
-# Functions for interactive air traffic graph:
+# Functions for interactive airline traffic graph:
 
 # Determining airports to include:
 @app.callback(
@@ -667,70 +640,16 @@ def update_chart(pivot_values, color_value, route_types_to_show, airlines_to_gra
     return output_histogram
 
 # Functions for creating top airlines graph:
+# @app.callback(
+#     Output('top_airlines_graph', 'figure'),
+#     Input('show_route_types', 'value',
+#     Input('top_airlines_graph_airlines_filter', 'value')
+#     )
 
+# def create_top_airlines_graph(show_route_types, top_airlines_graph_airlines_filter):
+#     fig_top_20_airlines_2018 = px.bar(df_top_20_airlines, x="Airline", y="Passengers", color = "Route_Type", barmode = 'group', title = "Top 20 Airlines by Passenger Traffic Involving at Least 1 US Airport in 2018")
+#     ## https://plotly.com/python/bar-charts/
 
-# Determining airlines to include:
-@app.callback(
-    Output("top_airlines_graph_airlines_filter", "options"),
-    Output("top_airlines_graph_airlines_filter", "value"),
-    Input("top_airlines_graph_airlines_limit", "value"),
-    Input("top_airlines_graph_route_types", "value")
-)
-
-def create_airlines_list_for_top_airlines_graph(airlines_limit, route_types_to_show):
-    return create_airlines_list(airlines_limit = airlines_limit, route_types_to_show=route_types_to_show, max_airlines_limit=100)
-
-# Creating the top airlines chart:
-@app.callback(
-    Output('top_airlines_graph', 'figure'),
-    Input('top_airlines_graph_show_route_types', 'value'),
-    Input('top_airlines_graph_airlines_filter', 'value'),
-    Input('top_airlines_graph_route_types', 'value'),
-    )
-
-def create_top_airlines_chart(show_route_types, airline_filter, route_types):
-    data_source = df_airline_airport_pairs.copy()
-    data_source = data_source.query("Airline in @airline_filter & Route_Type in @route_types")
-
-    # Determining airline ranks (which will be useful for sorting bars after
-    # creating a pivot table):
-    # Note that these airline ranks are based on passenger traffic within
-    # the filtered copy of the pivot table rather than on all passenger traffic.
-
-    df_airline_pivot = data_source.pivot_table(index = 'Airline', values = 'Passengers', aggfunc = 'sum').sort_values('Passengers', ascending = False).reset_index()
-    df_airline_pivot['Airline_Rank'] = df_airline_pivot['Passengers'].rank(ascending=False) 
-    df_airline_pivot.drop('Passengers', axis = 1, inplace = True) # This 
-    # column will get in the way when merging the table with the pivot table 
-    # on which the graph will be based.
-    # print(df_airline_pivot)
-
-    if 'show_route_type' in show_route_types:
-        pivot_index = ['Airline', 'Route_Type']
-    else:
-        pivot_index = ['Airline'] 
-    data_pivot = data_source.pivot_table(index = pivot_index, values = 'Passengers', aggfunc = 'sum').reset_index()
-    data_pivot = data_pivot.merge(df_airline_pivot, on = 'Airline')
-    
-    if 'show_route_type' in show_route_types:
-        data_pivot.sort_values(['Airline_Rank', 'Route_Type'], inplace = True)
-    else:
-        data_pivot.sort_values('Airline_Rank', inplace = True)
-
-    if 'show_route_type' in show_route_types:
-        data_pivot['Airline_Route_Pair'] = data_pivot['Airline'] + ' ' + data_pivot['Route_Type']
-        x_val = 'Airline_Route_Pair'
-    else:
-        x_val = 'Airline'
-
-    # print(data_pivot)
-
-    fig_top_airlines = px.histogram(data_pivot, x = x_val, y = 'Passengers', color = 'Airline', color_discrete_map=airline_color_map)
-    if 'show_route_type' in show_route_types:
-        fig_top_airlines.update_xaxes(categoryorder = 'array', 
-    categoryarray = data_pivot['Airline_Route_Pair']) # Reorders bars so that
-    # domestic ones will always precede international ones
-
-    return fig_top_airlines
 
 
 
