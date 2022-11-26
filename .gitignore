@@ -8,3 +8,6 @@ old_app_1.py
 old_app_2.py
 test_dash_workspace_2.py
 .gitignore
+kjb3-plotly-aviation-demo-repository/pages/__pycache__/dash_pivot_example.cpython-310.pyc
+kjb3-plotly-aviation-demo-repository/pages/__pycache__/origins_by_dest.cpython-310.pyc
+kjb3-plotly-aviation-demo-repository/pages/__pycache__/summary_data.cpython-310.pyc
