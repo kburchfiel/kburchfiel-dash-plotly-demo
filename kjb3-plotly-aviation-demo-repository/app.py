@@ -10,7 +10,8 @@
 # is to come.
 
 import dash
-from dash import Dash, html, dcc, html, Input, Output, dash_table, register_page, callback
+from dash import Dash, html, dcc, html, Input, Output, dash_table, \
+register_page, callback
 import dash_bootstrap_components as dbc
 import plotly.graph_objects as go
 import plotly.express as px
@@ -22,10 +23,11 @@ app = Dash(__name__, external_stylesheets = [dbc.themes.BOOTSTRAP],
 use_pages=True, pages_folder = "")
 # See https://dash-bootstrap-components.opensource.faculty.ai/docs/quickstart/
 server = app.server 
-# From https://medium.com/kunder/deploying-dash-to-cloud-run-5-minutes-c026eeea46d4
+# From:
+# https://medium.com/kunder/deploying-dash-to-cloud-run-5-minutes-c026eeea46d4
 # Also found on https://dash.plotly.com/deployment (within the Heroku section)
 
-online_deployment = False # Set to False for local development and debugging
+online_deployment = True # Set to False for local development and debugging
 # Make sure this is set to True before you deploy a new version of the app
 # to Cloud Run!
 read_from_csv = True # If set to True, data will be loaded from
@@ -108,15 +110,28 @@ airline_color_map = {
 all_data_value = 'All_Traffic'
 
 if read_from_sql == True:
-    df_airline_airport_pairs = pd.read_sql('airline_airport_pairs_2018', con = elephantsql_engine)
-    df_dest_by_origin = pd.read_sql('select * from dest_to_origin', con = elephantsql_engine)
+    df_airline_airport_pairs = pd.read_sql('airline_airport_pairs_2018', 
+    con = elephantsql_engine)
+    df_dest_by_origin = pd.read_sql('select * from dest_to_origin', 
+    con = elephantsql_engine)
+    df_airline_traffic_by_month = pd.read_sql('airline_traffic_by_month_2018',
+    con = elephantsql_engine)
+    df_airport_traffic_by_month = pd.read_sql('airport_traffic_by_month_2018',
+    con = elephantsql_engine)
+
 else:
     df_airline_airport_pairs = pd.read_csv(r'..\airport_airline_pairs_2018.csv')
     df_dest_by_origin = pd.read_csv(r'..\dest_to_origin_2018.csv')
+    df_airline_traffic_by_month = pd.read_csv(
+        r'..\airline_traffic_by_month_2018.csv')
+    df_airport_traffic_by_month = pd.read_csv(
+        r'..\airport_traffic_by_month_2018.csv')
 
 
-df_airline_airport_pairs[all_data_value] = all_data_value # This column will allow
-# the code to show all values when no pivot value is selected.
+
+df_airline_airport_pairs[all_data_value] = all_data_value 
+# This column will allow the code to show all values 
+# when no pivot value is selected.
 
 # It seems that the above charts need to be created before initializing the
 # app.layout set below, since otherwise the figure values won't be found.
@@ -133,7 +148,8 @@ route_types_to_show = ['Domestic', 'International'], max_airlines_limit = 10):
     should be in the event that airlines_limit (the user-selected value) falls
     outside a reasonable range or is otherwise invalid.
     '''
-    data_source = df_airline_airport_pairs.query("Destination_Region == 'Domestic'").copy()
+    data_source = df_airline_airport_pairs.query(
+        "Destination_Region == 'Domestic'").copy()
     data_source = data_source.query("Route_Type in @route_types_to_show").copy()
 
     if airlines_limit == None:
@@ -150,8 +166,81 @@ route_types_to_show = ['Domestic', 'International'], max_airlines_limit = 10):
     # This returns two instances of the airlines list: one for the 'options'
     # section of the Dropdown and the other for the default 'value' section.
 
+def line_chart_1_comp_option(df, x_value, y_value, time_parameter, 
+max_number_to_include, number_to_include = None, compare_by_x_value = True):
+    '''Creates a line chart with a single comparison option. This function
+    is designed to work with multiple datasets, which makes for a cleaner
+    code base, since this function will only need to be defined once for
+    these different datasets.
+    
+    number_to_include designates the number of items that should be included
+    in the line chart (ranked by total prevalence). 
+    If number_to_include is set to 0, all instances of a given variable
+    will be shown. For instance, if creating a line chart of 
+    airport traffic by month, setting number_to_include to 5 means
+    that only the top 5 airports by passenger traffic will be included.
+    
+    If compare_by_x_value is set to True, all values will be grouped together
+    into a single line. Otherwise, different lines will be created
+    for each instance of the variable.'''
+
+    df_for_charting = df.copy()
+
+    if compare_by_x_value == True: 
+        # If compare_by_x_value is set to True, n lines will be plotted, with
+        # n equaling the lesser of number_to_include and max_number_to_include.
+        # (The number of lines is restricted by these variables so as not to
+        # create an overly detailed graph.) However, if compare_by_x_value
+        # is set to False, there is no need to restrict the data being shown,
+        # so these lines will be skipped.
+
+        if number_to_include == None:
+            number_to_include = max_number_to_include
+        if ((1 <= number_to_include <= max_number_to_include) == False):
+            number_to_include = max_number_to_include
+        
+        # The following lines determine the x values with the highest y_value
+        # totals within df_for_charting.
+        df_variable_ranks = df_for_charting.pivot_table(index = x_value, 
+        values = y_value, aggfunc = 'sum').sort_values(
+            y_value, ascending = False)
+        x_values_to_include = list(
+            df_variable_ranks.index[0:number_to_include])
+
+        # The following line filters df_for_charting to include only
+        # the x values contained within x_values_to_include.
+        df_for_charting = df_for_charting.query(
+            x_value+" in @x_values_to_include")
+
+    # The line chart created by this function will be based on a pivot table.
+    # If compare_by_x_value is set to True, the x value needs to be added in
+    # as one of the index options for that pivot_table and as the 'color' 
+    # argument for the line chart function call. If it is instead set to False,
+    # only the time_parameter value should be included in the index option,
+    # and the 'color' argument should be set to None. This is what the 
+    # following if/else statement accomplishes.
+    if compare_by_x_value == True:
+        index_vals = [time_parameter, x_value]
+        color_val = x_value
+    else:
+        index_vals = [time_parameter]
+        color_val = None
+
+    pivot_for_graphing = df_for_charting.pivot_table(
+        index = index_vals, 
+        values = y_value, aggfunc = 'sum').reset_index()
+
+    line_chart = px.line(pivot_for_graphing, x = time_parameter, 
+    y = y_value, color = color_val)
+
+    airports_by_month_table = pivot_for_graphing.to_dict('records')
+
+    return line_chart, airports_by_month_table
+
+
 def df_to_table(df):
-    '''This simple function converts a DataFrame into a Plotly go.Table object.'''
+    '''This simple function converts a DataFrame 
+    into a Plotly go.Table object.'''
     df_for_table = df.copy() # Copying the table helps ensure that the 
     # original DataFrame is not modified in the process of creating the
     # table.
@@ -162,6 +251,8 @@ def df_to_table(df):
             values = [df_for_table[column] for column in column_list]))]) 
     # Based on https://plotly.com/python/table/#use-a-pandas-dataframe
     return plotly_table
+
+# Layout specifications for each page in the (multi-page) app:
 
 register_page("Summary Data", path = '/',
 layout = html.Div(
@@ -200,15 +291,19 @@ style = {"margin": "2%"}, # See
     # ['show_airline_comparison', 'show_route_type']
     html.H5(children = "Route Types To Show:", style = {"margin-top": "1%"}),
     dcc.Dropdown(['Domestic', 'International'], 
-    ['Domestic','International'], id='top_airports_graph_route_types', multi = True),
-    html.H5(children = "Airport Count (Max 100):", style = {"margin-top": "1%"}),
-    dcc.Input(id="airports_graph_airports_limit_input", type="number", value=20, min = 1),
+    ['Domestic','International'], 
+    id='top_airports_graph_route_types', multi = True),
+    html.H5(children = "Airport Count (Max 100):", 
+    style = {"margin-top": "1%"}),
+    dcc.Input(id="airports_graph_airports_limit_input", 
+    type="number", value=20, min = 1),
     html.H5(children = "Airports to Include:", style = {"margin-top": "1%"}),
     dcc.Dropdown(id = "airports_to_graph", multi = True), # The initial value
     # will be set through a callback, so no list is specified here.
     dcc.Graph(id = "top_airports_interactive_graph"),
     dash_table.DataTable(id = "top_airports_interactive_table",
-    export_format = 'csv', style_table = {'height':'300px', 'overflowY':'auto'}),
+    export_format = 'csv', 
+    style_table = {'height':'300px', 'overflowY':'auto'}),
     # See https://dash.plotly.com/datatable/height regarding the style_table
     # argument.
     # See https://dash.plotly.com/dash-core-components/download for
@@ -269,10 +364,11 @@ style = {"margin": "2%"}, # See
     # Comparisons:
     dbc.Row([
     dbc.Col(html.H5(children = "Compare by:"), xl = 2),
-    dbc.Col(dcc.Dropdown(['Airport', 'Airline', 'Route Type'], ['Airport'], 
+    dbc.Col(dcc.Dropdown(['Airport', 'Airline', 'Route Type'], 
+    ['Airport', 'Airline'], 
     id='pivot_value_input', multi = True), xl = 2),
-    dbc.Col(html.H5(children = "Color bars based on: (Note: this item must be one \
-    of the selected comparisons)"), xl = 2),
+    dbc.Col(html.H5(children = "Color bars based on: \
+    (Note: this item must be one of the selected comparisons)"), xl = 2),
     dbc.Col(dcc.Dropdown(['Airport', 'Airline', 'Route Type', 'None'], 
     'Airport', id='color_value_input', multi = False), xl = 2)
     ], justify = "start", style = {"margin-top": "1%"}),
@@ -284,14 +380,16 @@ style = {"margin": "2%"}, # See
     export_format = 'csv', 
     style_table = {'height':'300px', 'overflowY':'auto'}),
 
-
-
     # Top Airlines Graph:
-    html.H2(children = "Top Airlines by Traffic Involving at Least 1 US Airport in 2018"),
+    html.H2(children = "Top Airlines by Traffic Involving at \
+    Least 1 US Airport in 2018"),
     dcc.Checklist(
             id = 'top_airlines_graph_show_route_types',
     options={
-            'show_route_type': 'Compare by Route Type'
+            'show_route_type': ' Compare by Route Type'
+            # A space is added before 'Compare by Route Type' so as to add
+            # a gap in between the checkbox and the text. Adding multiple
+            # spaces doesn't appear to further increase the spacing.
     },
     value=['show_route_type'], style = {"margin-top": "1%"}),
 
@@ -306,8 +404,6 @@ style = {"margin": "2%"}, # See
     type="number", value=20, min = 1, size = '5'), xl = 1)
     # See https://dash.plotly.com/dash-core-components/input
     ], justify = "start", style = {"margin-top": "1%"}),
-
-
 
     dbc.Row([
     dbc.Col(html.H5(children = "Airlines to Include:"), xl = 2),
@@ -324,7 +420,7 @@ style = {"margin": "2%"}, # See
     style_table = {'height':'300px', 'overflowY':'auto'}),
 
     # Top US Hubs:
-    html.H2(children = "Top US Airport Hubs:"),
+    html.H2(children = "Top US Airport Hubs"),
     dbc.Row([
     dbc.Col(html.H5(children = "Hubs to Show (Max 100):"), xl = 2),
 
@@ -347,12 +443,46 @@ style = {"margin": "2%"}, # See
         id = 'top_hubs_graph'),
 
     dash_table.DataTable(id = "top_hubs_table",
-    export_format = 'csv', style_table = {'height':'300px', 'overflowY':'auto'}),
-])) # For multi-page app support. See 
-# https://dash.plotly.com/urls
+    export_format = 'csv', 
+    style_table = {'height':'300px', 'overflowY':'auto'}),
+
+    html.H2(children = "Destination Airport Traffic by Month"),
+    dbc.Row([
+        dbc.Col(html.H5(children = "Airports to Show (Max 100):"), xl = 2),
+        dbc.Col(dcc.Input(id="airports_by_month_airports_limit", 
+        type = "number", value = 10, min = 1, size = '5'), xl = 1),
+        dbc.Col(dcc.Checklist(id = "airports_by_month_show_comparison",
+        options = {"show_airport_comparison":" Compare by Airport"},
+        value = ['show_airport_comparison'], style = {'margin-top': "1%"}),
+        xl = 2)
+    ], justify = 'start', style = {"margin-top":"1%"}),
+    dcc.Graph(id = 'airport_traffic_by_month_graph'),
+    dash_table.DataTable(id = "airport_traffic_by_month_table",
+    export_format = 'csv',
+     style_table = {'height':'300px', 'overflowY':'auto'}),
+
+    html.H2(children = "Airline Traffic by Month"),
+    dbc.Row([
+        dbc.Col(html.H5(children = "Airlines to Show (Max 100):"), xl = 2),
+        dbc.Col(dcc.Input(id="airlines_by_month_airlines_limit", 
+        type = "number", value = 10, min = 1, size = '5'), xl = 1),
+        dbc.Col(dcc.Checklist(id = "airlines_by_month_show_comparison",
+        options = {"show_airline_comparison":" Compare by Airline"},
+        value = ['show_airline_comparison'], style = {'margin-top': "1%"}),
+        xl = 2)
+    ], justify = 'start', style = {"margin-top":"1%"}),
+    dcc.Graph(id = 'airline_traffic_by_month_graph'),
+    dash_table.DataTable(id = "airline_traffic_by_month_table",
+    export_format = 'csv',
+     style_table = {'height':'300px', 'overflowY':'auto'}),
 
 
-dash.register_page("Dash Pivot Example (not yet complete)", 
+
+])) # dash.register_page is used because this is a multi-page 
+# application. See https://dash.plotly.com/urls
+
+
+dash.register_page("Dash Pivot Example (not yet functional)", 
 path = '/dash_pivot_example',
 
 layout = html.Div(children = [
@@ -740,8 +870,8 @@ color_value, route_types_to_show, airlines_to_graph, airports_to_graph):
         print(data_descriptor_values)   
         data_descriptor = data_source_pivot[
             data_descriptor_values[0]].copy() # This copy() statement
-        # is needed in order to avoid  modifying this column when the group column
-        # gets chosen.
+        # is needed in order to avoid  modifying this column when
+        # the group column gets chosen.
         for i in range(1, len(data_descriptor_values)):
             data_descriptor += ' ' + data_source_pivot[
                 data_descriptor_values[i]]
@@ -898,21 +1028,59 @@ def generate_top_hubs_graph_and_table(hubs_limit, route_types):
 
     return fig_top_hubs, top_hubs_table_data
 
-
+# Creating monthly airport traffic graph:
 
 @callback(
-    Output("top_origins_for_airport_table", "figure"),
-    Output("top_origins_for_airport_graph", "figure"),
-    Input("airport-text","value"),
+    Output("airport_traffic_by_month_graph", "figure"),
+    Output("airport_traffic_by_month_table", "data"),
+    Input("airports_by_month_airports_limit", "value"),
+    Input("airports_by_month_show_comparison", "value"),
 )
+
+def create_monthly_airport_traffic_graph(number_to_include, compare_by_airport):
+    if len(compare_by_airport) > 0:
+        compare_by_x_value = True
+    else:
+        compare_by_x_value = False
+    return line_chart_1_comp_option(df = df_airport_traffic_by_month, 
+    x_value = 'Airport', y_value = 'Passengers', time_parameter = 'Month', 
+    max_number_to_include=100, number_to_include=number_to_include, 
+    compare_by_x_value=compare_by_x_value)
+
+
+# Creating monthly airline traffic graph:
+
+@callback(
+    Output("airline_traffic_by_month_graph", "figure"),
+    Output("airline_traffic_by_month_table", "data"),
+    Input("airlines_by_month_airlines_limit", "value"),
+    Input("airlines_by_month_show_comparison", "value"),
+)
+
+def create_monthly_airline_traffic_graph(number_to_include, compare_by_airline):
+    if len(compare_by_airline) > 0:
+        compare_by_x_value = True
+    else:
+        compare_by_x_value = False
+    return line_chart_1_comp_option(df = df_airline_traffic_by_month, 
+    x_value = 'Airline', y_value = 'Passengers', time_parameter = 'Month', 
+    max_number_to_include=100, number_to_include=number_to_include, 
+    compare_by_x_value=compare_by_x_value)
+
 
 # Top origin airports for a given airport (displayed as both a graph 
 # and as a table):
 # Note: the callback component of the code was based on 
 # the examples shown at 
 # https://dash-example-index.herokuapp.com/circular-callback-app
-# and at https://dash-example-index.herokuapp.com/creating-and-updating-figures .
+# and at 
+# https://dash-example-index.herokuapp.com/creating-and-updating-figures .
 # See also: https://dash.plotly.com/basic-callbacks
+@callback(
+    Output("top_origins_for_airport_table", "figure"),
+    Output("top_origins_for_airport_graph", "figure"),
+    Input("airport-text","value"),
+)
 
 def create_departures_table(dest_airport):
     '''Creates a list of the top 20 departure airports (along with an 'Other' 
